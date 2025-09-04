@@ -1,1 +1,1 @@
-web: python minimal_main.py
+web: python app.py

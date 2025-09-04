@@ -11,19 +11,28 @@ pip install -r requirements.txt
 
 2. Ejecutar la aplicación:
 ```bash
-python main.py
+python app.py
 ```
 
 La API estará disponible en: `http://127.0.0.1:8000`
 
-**Nota:** Los datos se descargan automáticamente desde Google Drive en el primer inicio.
-
 ## Despliegue en Railway
 
-1. Conecta tu repositorio de GitHub a Railway
-2. Railway detectará automáticamente que es una aplicación Python
-3. Los datos se descargarán automáticamente desde Google Drive durante el despliegue
-4. La API estará disponible en la URL proporcionada por Railway
+### Pasos para crear nuevo proyecto:
+
+1. **Ve a [railway.app](https://railway.app)**
+2. **Inicia sesión con tu cuenta de GitHub**
+3. **Haz clic en "New Project"**
+4. **Selecciona "Deploy from GitHub repo"**
+5. **Busca y selecciona tu repositorio: `miguelangelmoscoso123456-droid/sssaalu`**
+6. **Railway detectará automáticamente que es Python**
+7. **La API estará disponible en la URL proporcionada por Railway**
+
+### Archivos del proyecto:
+- `app.py` - Aplicación principal
+- `requirements.txt` - Dependencias Python
+- `Procfile` - Comando de inicio
+- `runtime.txt` - Versión de Python
 
 ## Endpoints
 
