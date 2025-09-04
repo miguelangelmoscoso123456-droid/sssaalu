@@ -11,7 +11,7 @@ df_essalud = None
 
 def download_data_from_drive():
     """Descarga los datos desde Google Drive"""
-    url = "https://drive.usercontent.google.com/download?id=1Ix1bGOI3SZeN3RWbkwRWIQhp5-lwiSbX&export=download&authuser=0&confirm=t&uuid=cf58df23-afd9-42c0-b11b-ce13efef521c&at=AN8xHorbOCnxyu6GSvhZ9GaBjEjV%3A1756943185007"
+    url = "https://drive.usercontent.google.com/download?id=1Ix1bGOI3SZeN3RWbkwRWIQhp5-lwiSbX&export=download&authuser=0&confirm=t&uuid=24bccadc-2398-44c9-9bfe-fbac8de47573&at=AN8xHorWwCrlVg0hsh--dvAleN21%3A1756948900144"
     output_file = "Peru_social_security_Essalud.txt"
     
     try:
@@ -19,25 +19,40 @@ def download_data_from_drive():
             print("Descargando datos desde Google Drive...")
             print(f"URL: {url}")
             
-            # Intentar primero con gdown usando el enlace directo
+            # Usar gdown con el enlace directo público
             try:
                 gdown.download(url, output_file, quiet=False)
+                print("Datos descargados exitosamente con gdown")
             except Exception as gdown_error:
                 print(f"Gdown falló: {gdown_error}")
                 print("Intentando con requests...")
                 
                 # Fallback con requests
                 import requests
-                response = requests.get(url, stream=True)
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                
+                response = requests.get(url, headers=headers, stream=True)
                 response.raise_for_status()
                 
                 with open(output_file, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-            
-            print("Datos descargados exitosamente")
+                
+                print("Datos descargados exitosamente con requests")
         else:
             print("Archivo de datos ya existe, usando archivo local")
+        
+        # Verificar que el archivo no sea HTML
+        if os.path.exists(output_file):
+            with open(output_file, 'r', encoding='utf-8', errors='ignore') as f:
+                first_line = f.readline().strip()
+                if first_line.startswith('<!DOCTYPE') or first_line.startswith('<html'):
+                    print("ERROR: El archivo descargado es HTML, no CSV. El enlace requiere autenticación.")
+                    os.remove(output_file)  # Eliminar archivo HTML
+                    return False
+        
         return True
     except Exception as e:
         print(f"Error al descargar los datos: {e}")
@@ -267,5 +282,28 @@ async def get_stats():
     }
     
     return stats
+
+@app.get("/essalud/info")
+async def get_info():
+    """Información sobre el estado de la API"""
+    info = {
+        "status": "API funcionando",
+        "data_loaded": df_essalud is not None,
+        "total_records": len(df_essalud) if df_essalud is not None else 0,
+        "message": "Archivo de Google Drive configurado correctamente",
+        "endpoints": [
+            "/essalud/dni/{dni} - Búsqueda por DNI",
+            "/essalud/nombres/{nombres} - Búsqueda por nombres",
+            "/essalud/planilla/{planilla} - Búsqueda por planilla",
+            "/essalud/stats - Estadísticas de la base de datos",
+            "/essalud/info - Información de la API"
+        ]
+    }
+    
+    if df_essalud is not None:
+        info["columns"] = list(df_essalud.columns)
+        info["sample_data"] = df_essalud.head(1).to_dict('records')[0] if len(df_essalud) > 0 else None
+    
+    return info
 
 # La aplicación se ejecuta desde main.py
