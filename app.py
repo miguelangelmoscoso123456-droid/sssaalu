@@ -66,6 +66,7 @@ def load_data():
                     skipinitialspace=True
                 )
                 print(f"Datos cargados: {len(df_essalud)} registros")
+                print(f"Columnas disponibles: {list(df_essalud.columns)}")
             except Exception as csv_error:
                 print(f"Error con configuración estándar: {csv_error}")
                 print("Intentando con configuración alternativa...")
@@ -83,6 +84,7 @@ def load_data():
                         warn_bad_lines=True
                     )
                     print(f"Datos cargados con configuración alternativa: {len(df_essalud)} registros")
+                    print(f"Columnas disponibles: {list(df_essalud.columns)}")
                 except Exception as alt_error:
                     print(f"Error con configuración alternativa: {alt_error}")
                     print("Intentando lectura línea por línea...")
@@ -100,6 +102,7 @@ def load_data():
                         engine='python'  # Usar motor Python más permisivo
                     )
                     print(f"Datos cargados con motor Python: {len(df_essalud)} registros")
+                    print(f"Columnas disponibles: {list(df_essalud.columns)}")
         else:
             print("Archivo de datos no encontrado, API funcionará sin datos")
             df_essalud = None
@@ -158,8 +161,19 @@ async def get_by_dni(dni: str):
     if df_essalud is None:
         raise HTTPException(status_code=503, detail="Datos no cargados aún")
     
+    # Verificar si existe la columna 'documento'
+    if 'documento' not in df_essalud.columns:
+        # Buscar columnas que puedan contener el DNI
+        possible_dni_columns = [col for col in df_essalud.columns if 'documento' in col.lower() or 'dni' in col.lower()]
+        if not possible_dni_columns:
+            raise HTTPException(status_code=500, detail=f"Columna 'documento' no encontrada. Columnas disponibles: {list(df_essalud.columns)}")
+        # Usar la primera columna que contenga 'documento' o 'dni'
+        dni_column = possible_dni_columns[0]
+    else:
+        dni_column = 'documento'
+    
     # Buscar por documento (convertir a string para comparación)
-    result = df_essalud[df_essalud['documento'].astype(str) == str(dni)]
+    result = df_essalud[df_essalud[dni_column].astype(str) == str(dni)]
     
     if result.empty:
         raise HTTPException(status_code=404, detail=f"No se encontró registro con DNI: {dni}")
@@ -180,13 +194,22 @@ async def get_by_nombres(nombres: str):
     if df_essalud is None:
         raise HTTPException(status_code=503, detail="Datos no cargados aún")
     
+    # Buscar columnas de nombres
+    name_columns = []
+    for col in df_essalud.columns:
+        if any(name in col.lower() for name in ['nombre', 'paterno', 'materno', 'apellido']):
+            name_columns.append(col)
+    
+    if not name_columns:
+        raise HTTPException(status_code=500, detail=f"Columnas de nombres no encontradas. Columnas disponibles: {list(df_essalud.columns)}")
+    
     # Búsqueda parcial en nombres (case insensitive)
     nombres_upper = nombres.upper()
-    result = df_essalud[
-        df_essalud['Nombres'].str.upper().str.contains(nombres_upper, na=False) |
-        df_essalud['Paterno'].str.upper().str.contains(nombres_upper, na=False) |
-        df_essalud['Materno'].str.upper().str.contains(nombres_upper, na=False)
-    ]
+    conditions = []
+    for col in name_columns:
+        conditions.append(df_essalud[col].str.upper().str.contains(nombres_upper, na=False))
+    
+    result = df_essalud[pd.concat(conditions, axis=1).any(axis=1)]
     
     if result.empty:
         raise HTTPException(status_code=404, detail=f"No se encontraron registros con nombres que contengan: {nombres}")
@@ -207,8 +230,15 @@ async def get_by_planilla(planilla: str):
     if df_essalud is None:
         raise HTTPException(status_code=503, detail="Datos no cargados aún")
     
+    # Buscar columna de planilla
+    planilla_columns = [col for col in df_essalud.columns if 'planilla' in col.lower()]
+    if not planilla_columns:
+        raise HTTPException(status_code=500, detail=f"Columna 'planilla' no encontrada. Columnas disponibles: {list(df_essalud.columns)}")
+    
+    planilla_column = planilla_columns[0]
+    
     # Buscar por planilla (convertir a string para comparación)
-    result = df_essalud[df_essalud['Planilla'].astype(str) == str(planilla)]
+    result = df_essalud[df_essalud[planilla_column].astype(str) == str(planilla)]
     
     if result.empty:
         raise HTTPException(status_code=404, detail=f"No se encontraron registros con planilla: {planilla}")
