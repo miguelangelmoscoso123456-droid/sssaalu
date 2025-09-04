@@ -51,11 +51,55 @@ def load_data():
         # Primero intentar descargar los datos
         download_data_from_drive()
             
-        # Leer el archivo CSV con configuración para evitar warnings
+        # Leer el archivo CSV con configuración para manejar inconsistencias
         if os.path.exists('Peru_social_security_Essalud.txt'):
             print("Cargando datos en memoria...")
-            df_essalud = pd.read_csv('Peru_social_security_Essalud.txt', low_memory=False)
-            print(f"Datos cargados: {len(df_essalud)} registros")
+            try:
+                # Intentar con diferentes configuraciones para manejar inconsistencias
+                df_essalud = pd.read_csv(
+                    'Peru_social_security_Essalud.txt', 
+                    low_memory=False,
+                    on_bad_lines='skip',  # Saltar líneas problemáticas
+                    encoding='utf-8',
+                    sep=',',
+                    quotechar='"',
+                    skipinitialspace=True
+                )
+                print(f"Datos cargados: {len(df_essalud)} registros")
+            except Exception as csv_error:
+                print(f"Error con configuración estándar: {csv_error}")
+                print("Intentando con configuración alternativa...")
+                try:
+                    # Configuración alternativa más permisiva
+                    df_essalud = pd.read_csv(
+                        'Peru_social_security_Essalud.txt', 
+                        low_memory=False,
+                        on_bad_lines='skip',
+                        encoding='utf-8',
+                        sep=',',
+                        quotechar='"',
+                        skipinitialspace=True,
+                        error_bad_lines=False,
+                        warn_bad_lines=True
+                    )
+                    print(f"Datos cargados con configuración alternativa: {len(df_essalud)} registros")
+                except Exception as alt_error:
+                    print(f"Error con configuración alternativa: {alt_error}")
+                    print("Intentando lectura línea por línea...")
+                    # Último recurso: leer línea por línea
+                    df_essalud = pd.read_csv(
+                        'Peru_social_security_Essalud.txt', 
+                        low_memory=False,
+                        on_bad_lines='skip',
+                        encoding='utf-8',
+                        sep=',',
+                        quotechar='"',
+                        skipinitialspace=True,
+                        error_bad_lines=False,
+                        warn_bad_lines=False,
+                        engine='python'  # Usar motor Python más permisivo
+                    )
+                    print(f"Datos cargados con motor Python: {len(df_essalud)} registros")
         else:
             print("Archivo de datos no encontrado, API funcionará sin datos")
             df_essalud = None
