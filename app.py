@@ -11,15 +11,30 @@ df_essalud = None
 
 def download_data_from_drive():
     """Descarga los datos desde Google Drive"""
-    file_id = "1Ix1bGOI3SZeN3RWbkwRWIQhp5-lwiSbX"
-    url = f"https://drive.google.com/uc?id={file_id}"
+    url = "https://drive.usercontent.google.com/download?id=1Ix1bGOI3SZeN3RWbkwRWIQhp5-lwiSbX&export=download&authuser=0&confirm=t&uuid=cf58df23-afd9-42c0-b11b-ce13efef521c&at=AN8xHorbOCnxyu6GSvhZ9GaBjEjV%3A1756943185007"
     output_file = "Peru_social_security_Essalud.txt"
     
     try:
         if not os.path.exists(output_file):
             print("Descargando datos desde Google Drive...")
             print(f"URL: {url}")
-            gdown.download(url, output_file, quiet=False)
+            
+            # Intentar primero con gdown usando el enlace directo
+            try:
+                gdown.download(url, output_file, quiet=False)
+            except Exception as gdown_error:
+                print(f"Gdown falló: {gdown_error}")
+                print("Intentando con requests...")
+                
+                # Fallback con requests
+                import requests
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                
+                with open(output_file, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            
             print("Datos descargados exitosamente")
         else:
             print("Archivo de datos ya existe, usando archivo local")
