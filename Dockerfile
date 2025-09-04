@@ -17,10 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Make start script executable
-RUN chmod +x start.sh
+RUN chmod +x simple_start.sh
 
 # Expose port
 EXPOSE 8000
 
 # Run the application
-CMD ["./start.sh"]
+CMD ["./simple_start.sh"]

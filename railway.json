@@ -1,6 +1,6 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "deploy": {
-    "startCommand": "chmod +x start.sh && ./start.sh"
+    "startCommand": "chmod +x simple_start.sh && ./simple_start.sh"
   }
 }
