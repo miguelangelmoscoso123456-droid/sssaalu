@@ -64,27 +64,40 @@ def load_data():
     global df_essalud
     try:
         # Primero intentar descargar los datos
-        download_data_from_drive()
+        if not download_data_from_drive():
+            print("No se pudieron descargar los datos, continuando sin datos")
+            df_essalud = None
+            return True
             
         # Leer el archivo CSV con configuración para manejar inconsistencias
         if os.path.exists('Peru_social_security_Essalud.txt'):
             print("Cargando datos en memoria...")
             try:
-                # Intentar con diferentes configuraciones para manejar inconsistencias
+                # Configuración más robusta para archivos grandes
                 df_essalud = pd.read_csv(
                     'Peru_social_security_Essalud.txt', 
                     low_memory=False,
-                    on_bad_lines='skip',  # Saltar líneas problemáticas
+                    on_bad_lines='skip',
                     encoding='utf-8',
                     sep=',',
                     quotechar='"',
-                    skipinitialspace=True
+                    skipinitialspace=True,
+                    engine='python',  # Usar motor Python más permisivo
+                    nrows=100000  # Limitar a 100k registros inicialmente
                 )
+                
                 print(f"Datos cargados: {len(df_essalud)} registros")
                 print(f"Columnas disponibles: {list(df_essalud.columns)}")
+                
+                # Verificar que las columnas sean válidas
+                if len(df_essalud.columns) < 5:
+                    print("ERROR: Muy pocas columnas detectadas, posible problema con el archivo")
+                    df_essalud = None
+                    return True
+                    
             except Exception as csv_error:
-                print(f"Error con configuración estándar: {csv_error}")
-                print("Intentando con configuración alternativa...")
+                print(f"Error al cargar CSV: {csv_error}")
+                print("Intentando configuración alternativa...")
                 try:
                     # Configuración alternativa más permisiva
                     df_essalud = pd.read_csv(
@@ -95,35 +108,23 @@ def load_data():
                         sep=',',
                         quotechar='"',
                         skipinitialspace=True,
-                        error_bad_lines=False,
-                        warn_bad_lines=True
+                        engine='python',
+                        nrows=50000  # Limitar aún más
                     )
                     print(f"Datos cargados con configuración alternativa: {len(df_essalud)} registros")
                     print(f"Columnas disponibles: {list(df_essalud.columns)}")
                 except Exception as alt_error:
                     print(f"Error con configuración alternativa: {alt_error}")
-                    print("Intentando lectura línea por línea...")
-                    # Último recurso: leer línea por línea
-                    df_essalud = pd.read_csv(
-                        'Peru_social_security_Essalud.txt', 
-                        low_memory=False,
-                        on_bad_lines='skip',
-                        encoding='utf-8',
-                        sep=',',
-                        quotechar='"',
-                        skipinitialspace=True,
-                        error_bad_lines=False,
-                        warn_bad_lines=False,
-                        engine='python'  # Usar motor Python más permisivo
-                    )
-                    print(f"Datos cargados con motor Python: {len(df_essalud)} registros")
-                    print(f"Columnas disponibles: {list(df_essalud.columns)}")
+                    print("No se pudieron cargar los datos")
+                    df_essalud = None
+                    return True
         else:
             print("Archivo de datos no encontrado, API funcionará sin datos")
             df_essalud = None
+            return True
         return True
     except Exception as e:
-        print(f"Error al cargar los datos: {e}")
+        print(f"Error general al cargar los datos: {e}")
         print("API funcionará sin datos")
         df_essalud = None
         return True
