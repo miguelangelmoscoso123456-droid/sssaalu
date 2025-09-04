@@ -76,7 +76,6 @@ def load_data():
                 # Configuración más robusta para archivos grandes
                 df_essalud = pd.read_csv(
                     'Peru_social_security_Essalud.txt', 
-                    low_memory=False,
                     on_bad_lines='skip',
                     encoding='utf-8',
                     sep=',',
@@ -102,7 +101,6 @@ def load_data():
                     # Configuración alternativa más permisiva
                     df_essalud = pd.read_csv(
                         'Peru_social_security_Essalud.txt', 
-                        low_memory=False,
                         on_bad_lines='skip',
                         encoding='utf-8',
                         sep=',',
