@@ -66,6 +66,7 @@ def download_data_from_drive():
     try:
         if not os.path.exists(output_file):
             print("Descargando datos desde Google Drive...")
+            print(f"URL: {url}")
             gdown.download(url, output_file, quiet=False)
             print("Datos descargados exitosamente")
         else:
@@ -73,6 +74,7 @@ def download_data_from_drive():
         return True
     except Exception as e:
         print(f"Error al descargar los datos: {e}")
+        print("Continuando sin datos...")
         return False
 
 def load_data():
@@ -80,26 +82,36 @@ def load_data():
     global df_essalud
     try:
         # Primero intentar descargar los datos
-        if not download_data_from_drive():
-            return False
+        download_data_from_drive()
             
         # Leer el archivo CSV con configuración para evitar warnings
-        df_essalud = pd.read_csv('Peru_social_security_Essalud.txt', low_memory=False)
-        print(f"Datos cargados: {len(df_essalud)} registros")
+        if os.path.exists('Peru_social_security_Essalud.txt'):
+            df_essalud = pd.read_csv('Peru_social_security_Essalud.txt', low_memory=False)
+            print(f"Datos cargados: {len(df_essalud)} registros")
+        else:
+            print("Archivo de datos no encontrado, API funcionará sin datos")
+            df_essalud = None
         return True
     except Exception as e:
         print(f"Error al cargar los datos: {e}")
-        return False
+        print("API funcionará sin datos")
+        df_essalud = None
+        return True
 
 @app.on_event("startup")
 async def startup_event():
     """Carga los datos al iniciar la aplicación"""
-    if not load_data():
-        raise Exception("No se pudieron cargar los datos de Essalud")
+    print("Iniciando aplicación Essalud API...")
+    load_data()
+    print("Aplicación iniciada correctamente")
 
 @app.get("/")
 async def root():
     return {"message": "API Essalud - Endpoints disponibles: /essalud/dni/{dni}, /essalud/nombres/{nombres}, /essalud/planilla/{planilla}"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "data_loaded": df_essalud is not None}
 
 @app.get("/essalud/dni/{dni}")
 async def get_by_dni(dni: str):
