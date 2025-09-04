@@ -204,7 +204,7 @@ async def get_by_dni(dni: str):
 
 @app.get("/essalud/nombres/{nombres}")
 async def get_by_nombres(nombres: str):
-    """Consulta por nombres (búsqueda parcial)"""
+    """Consulta por nombres (búsqueda parcial y completa)"""
     if df_essalud is None:
         raise HTTPException(status_code=503, detail="Datos no cargados aún")
     
@@ -217,13 +217,34 @@ async def get_by_nombres(nombres: str):
     if not name_columns:
         raise HTTPException(status_code=500, detail=f"Columnas de nombres no encontradas. Columnas disponibles: {list(df_essalud.columns)}")
     
-    # Búsqueda parcial en nombres (case insensitive)
-    nombres_upper = nombres.upper()
-    conditions = []
-    for col in name_columns:
-        conditions.append(df_essalud[col].str.upper().str.contains(nombres_upper, na=False))
+    # Limpiar y preparar el término de búsqueda
+    nombres_clean = nombres.replace('_', ' ').replace('-', ' ').strip().upper()
+    search_terms = [term.strip() for term in nombres_clean.split() if term.strip()]
     
-    result = df_essalud[pd.concat(conditions, axis=1).any(axis=1)]
+    # Búsqueda mejorada: buscar cada término en cualquier columna de nombres
+    conditions = []
+    
+    for term in search_terms:
+        term_conditions = []
+        for col in name_columns:
+            term_conditions.append(df_essalud[col].str.upper().str.contains(term, na=False))
+        # Al menos una columna debe contener este término
+        conditions.append(pd.concat(term_conditions, axis=1).any(axis=1))
+    
+    # Todos los términos deben estar presentes
+    if conditions:
+        result = df_essalud[pd.concat(conditions, axis=1).all(axis=1)]
+    else:
+        result = df_essalud.iloc[0:0]  # DataFrame vacío
+    
+    if result.empty:
+        # Si no encuentra con búsqueda completa, intentar búsqueda parcial
+        nombres_upper = nombres_clean
+        partial_conditions = []
+        for col in name_columns:
+            partial_conditions.append(df_essalud[col].str.upper().str.contains(nombres_upper, na=False))
+        
+        result = df_essalud[pd.concat(partial_conditions, axis=1).any(axis=1)]
     
     if result.empty:
         raise HTTPException(status_code=404, detail=f"No se encontraron registros con nombres que contengan: {nombres}")
