@@ -45,10 +45,11 @@ ehthumbs.db
 Thumbs.db
 
 # Data files
-*.txt
 *.csv
 *.xlsx
 *.xls
+# Exclude data files but keep requirements.txt
+Peru_social_security_Essalud.txt
 
 # Logs
 *.log
