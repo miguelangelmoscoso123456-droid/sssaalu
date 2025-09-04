@@ -48,7 +48,4 @@ async def get_by_planilla(planilla: str):
         "note": "Datos no cargados aún - descargando en segundo plano"
     }
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    print(f"Starting Essalud API on port {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# La aplicación se ejecuta desde main.py
